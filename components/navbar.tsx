@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
@@ -56,18 +57,14 @@ export function Navbar() {
         <nav className="flex items-center justify-between h-16 sm:h-20 lg:h-24">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group relative z-50">
-            <div
-              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-colors ${
-                scrolled || isOpen ? "bg-primary" : "bg-white"
-              }`}
-            >
-              <span
-                className={`font-serif font-bold text-lg sm:text-xl transition-colors ${
-                  scrolled || isOpen ? "text-primary-foreground" : "text-foreground"
-                }`}
-              >
-                T
-              </span>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-white shadow-sm flex items-center justify-center">
+              <Image
+                src="/images/team-555-logo.jpg"
+                alt="Team 555 logo"
+                width={40}
+                height={40}
+                className="object-cover"
+              />
             </div>
             <div className="flex flex-col">
               <span
