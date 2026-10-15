@@ -6,13 +6,17 @@ export function JoinHero() {
       tagline="Get Involved"
       title={
         <>
-          Your Nepal{" "}
-          <span className="text-accent italic">Needs You</span>
+          Your Nepal <em>needs you</em>
         </>
       }
-      description="Whether you can spare 2 hours a week or 20, there is meaningful work waiting for you. No experience needed — just the will to show up."
+      description="Whether you can spare 2 hours a week or 20, there is meaningful work waiting for you. No experience needed, just the will to show up."
       imageSrc="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1920&q=80"
-      height="md"
+      jumpLinks={[
+        { href: "#options", label: "Ways to help" },
+        { href: "#how-it-works", label: "How it works" },
+        { href: "#register", label: "Apply now" },
+        { href: "#faq", label: "FAQ" },
+      ]}
     />
   )
 }

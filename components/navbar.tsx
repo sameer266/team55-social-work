@@ -3,13 +3,18 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState, useEffect } from "react"
-import { Menu, X, ArrowUpRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useRef, useState } from "react"
+import { ArrowRight, ArrowUpRight, ChevronDown, Heart, Mail, Menu, Phone, X } from "lucide-react"
+import { focusAreas } from "@/lib/focus-areas"
+import { siteContact } from "@/lib/site-content"
+import { cn } from "@/lib/utils"
 
-const navLinks = [
+type NavLink = { href: string; label: string; hasMenu?: boolean }
+
+const navLinks: NavLink[] = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
+  { href: "/what-we-do", label: "What We Do", hasMenu: true },
   { href: "/projects", label: "Projects" },
   { href: "/gallery", label: "Gallery" },
   { href: "/join", label: "Join Us" },
@@ -18,185 +23,307 @@ const navLinks = [
 export function Navbar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const menuRef = useRef<HTMLLIElement>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  const isCurrentPage = (href: string) =>
+    href === "/" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)
 
-  // Close mobile menu on route change
+  // Close menus on route change
   useEffect(() => {
     setIsOpen(false)
+    setMenuOpen(false)
   }, [pathname])
 
-  // Prevent body scroll when mobile menu is open
+  // Lift the header off the page once the user scrolls
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Desktop dropdown: close on Escape or a click outside
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setMenuOpen(false)
+    const onClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false)
     }
+    window.addEventListener("keydown", onKey)
+    document.addEventListener("mousedown", onClick)
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      document.removeEventListener("mousedown", onClick)
+    }
+  }, [menuOpen])
+
+  // Prevent body scroll and allow Escape while the mobile menu is open
+  useEffect(() => {
+    if (!isOpen) return
+    document.body.style.overflow = "hidden"
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setIsOpen(false)
+    window.addEventListener("keydown", onKey)
     return () => {
       document.body.style.overflow = ""
+      window.removeEventListener("keydown", onKey)
     }
   }, [isOpen])
 
+  // Small delay on hover-out so the pointer can travel from the trigger into the panel
+  const openMenu = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current)
+    setMenuOpen(true)
+  }
+  const scheduleClose = () => {
+    closeTimer.current = setTimeout(() => setMenuOpen(false), 120)
+  }
+
+  const linkClass = (active: boolean) =>
+    cn(
+      "relative inline-flex items-center gap-1 rounded-md px-3 py-2 text-[15px] font-medium transition-colors",
+      active ? "text-foreground" : "text-foreground/65 hover:text-foreground",
+    )
+
+  const underline = (active: boolean) => (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "absolute inset-x-3 -bottom-0.5 h-0.5 origin-left rounded-full bg-accent-ink transition-transform duration-300",
+        active ? "scale-x-100" : "scale-x-0",
+      )}
+    />
+  )
+
   return (
+    <>
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-background/95 backdrop-blur-md border-b border-border shadow-sm"
-          : "bg-transparent"
-      }`}
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 border-b bg-background/95 backdrop-blur-md transition-shadow duration-300",
+        scrolled ? "border-border shadow-[0_6px_24px_-12px] shadow-foreground/15" : "border-border/60",
+      )}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <nav className="flex items-center justify-between h-16 sm:h-20 lg:h-24">
+      <div className="site-container">
+        <nav aria-label="Main" className="flex h-16 items-center justify-between gap-6 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 group relative z-50">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-white shadow-sm flex items-center justify-center">
-              <Image
-                src="/images/team-555-logo.jpg"
-                alt="Team 555 logo"
-                width={40}
-                height={40}
-                className="object-cover"
-              />
-            </div>
-            <div className="flex flex-col">
-              <span
-                className={`font-serif font-semibold text-base sm:text-lg tracking-tight transition-colors ${
-                  scrolled || isOpen ? "text-foreground" : "text-white"
-                }`}
-              >
-                TEAM555
-              </span>
-              <span
-                className={`text-[10px] sm:text-xs tracking-[0.15em] uppercase transition-colors ${
-                  scrolled || isOpen ? "text-muted-foreground" : "text-white/60"
-                }`}
-              >
-                Nepal
-              </span>
-            </div>
+          <Link href="/" className="relative z-50 flex shrink-0 items-center gap-3" aria-label="Team555 Nepal, home">
+            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-border lg:h-11 lg:w-11">
+              <Image src="/images/team-555-logo.jpg" alt="" width={44} height={44} className="object-cover" priority />
+            </span>
+            <span className="flex flex-col leading-none">
+              <span className="font-serif text-xl font-semibold text-foreground">Team555</span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Nepal</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-8 xl:gap-10">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-sm font-medium tracking-wide uppercase transition-colors relative group ${
-                  scrolled ? "text-foreground" : "text-white"
-                } ${pathname === link.href ? "text-accent" : "hover:text-accent"}`}
-              >
-                {link.label}
-                <span
-                  className={`absolute -bottom-1 left-0 h-0.5 bg-accent transition-all duration-300 ${
-                    pathname === link.href ? "w-full" : "w-0 group-hover:w-full"
-                  }`}
-                />
-              </Link>
-            ))}
-          </div>
+          <ul className="hidden items-center gap-0.5 lg:flex">
+            {navLinks.map((link) => {
+              const active = isCurrentPage(link.href)
+
+              if (link.hasMenu) {
+                return (
+                  <li key={link.href} ref={menuRef} className="relative" onMouseEnter={openMenu} onMouseLeave={scheduleClose}>
+                    <button
+                      type="button"
+                      aria-expanded={menuOpen}
+                      aria-controls="what-we-do-menu"
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setMenuOpen((open) => !open)}
+                      className={linkClass(active)}
+                    >
+                      {link.label}
+                      <ChevronDown
+                        className={cn("h-4 w-4 transition-transform duration-200", menuOpen && "rotate-180")}
+                        aria-hidden="true"
+                      />
+                      {underline(active)}
+                    </button>
+
+                    {/* Dropdown: previews each focus area so visitors can go straight to a topic */}
+                    <div
+                      id="what-we-do-menu"
+                      className={cn(
+                        "absolute left-1/2 top-full w-[680px] -translate-x-1/2 pt-4 transition-[opacity,transform,visibility] duration-200",
+                        menuOpen ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0",
+                      )}
+                    >
+                      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-foreground/10">
+                        <ul className="grid grid-cols-2 gap-1 p-3">
+                          {focusAreas.map((area) => (
+                            <li key={area.slug}>
+                              <Link
+                                href={`/what-we-do/${area.slug}`}
+                                tabIndex={menuOpen ? undefined : -1}
+                                className="group flex gap-4 rounded-xl p-4 transition-colors hover:bg-secondary"
+                              >
+                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                                  <area.icon className="h-5 w-5" aria-hidden="true" />
+                                </span>
+                                <span>
+                                  <span className="block font-serif text-lg leading-tight text-foreground">{area.title}</span>
+                                  <span className="mt-1 block text-[13px] leading-snug text-muted-foreground">{area.summary}</span>
+                                </span>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="flex items-center justify-between gap-4 border-t border-border bg-secondary/70 px-7 py-4">
+                          <p className="text-sm text-muted-foreground">See how we work and the goals we are working toward.</p>
+                          <Link
+                            href="/what-we-do"
+                            tabIndex={menuOpen ? undefined : -1}
+                            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-foreground hover:text-accent-ink"
+                          >
+                            Overview <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                )
+              }
+
+              return (
+                <li key={link.href}>
+                  <Link href={link.href} aria-current={active ? "page" : undefined} className={linkClass(active)}>
+                    {link.label}
+                    {underline(active)}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
 
           {/* Desktop CTA */}
-          <div className="hidden lg:block">
-            <Button
-              asChild
-              className={`rounded-lg h-11 xl:h-12 px-6 xl:px-8 font-medium tracking-wide text-sm transition-colors ${
-                scrolled
-                  ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                  : "bg-white hover:bg-white/90 text-foreground"
-              }`}
+          <div className="hidden items-center gap-2 lg:flex">
+            <Link
+              href="/join#donate"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-marigold px-5 text-sm font-semibold text-marigold-foreground transition-colors hover:bg-marigold/85"
             >
-              <Link href="/join" className="flex items-center gap-2">
-                Become a Member
-                <ArrowUpRight className="w-4 h-4" />
-              </Link>
-            </Button>
+              <Heart className="h-4 w-4" aria-hidden="true" />
+              Donate
+            </Link>
+            <Link
+              href="/join"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+            >
+              Become a Member
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden p-2 -mr-2 relative z-50"
+            type="button"
             onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
+            aria-label={isOpen ? "Close menu" : "Open menu"}
             aria-expanded={isOpen}
+            aria-controls="mobile-navigation"
+            className="relative z-50 -mr-2 flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted lg:hidden"
           >
-            {isOpen ? (
-              <X className="w-6 h-6 text-foreground" />
-            ) : (
-              <Menu className={`w-6 h-6 ${scrolled ? "text-foreground" : "text-white"}`} />
-            )}
+            {isOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
           </button>
         </nav>
+      </div>
+    </header>
 
-        {/* Mobile Navigation */}
-        <div
-          className={`lg:hidden fixed inset-0 bg-background z-40 transition-all duration-300 ${
-            isOpen ? "opacity-100 visible" : "opacity-0 invisible"
-          }`}
-        >
-          <div className="container mx-auto px-4 sm:px-6 pt-24 pb-8 h-full overflow-y-auto">
-            <div className="flex flex-col gap-2">
-              {navLinks.map((link, index) => (
-                <Link
+      {/* Mobile Navigation: a sibling of the header, because the header's backdrop-blur would otherwise
+          become the containing block and collapse this fixed panel to the header's height */}
+      <div
+        id="mobile-navigation"
+        className={cn(
+          "fixed inset-x-0 bottom-0 top-16 z-40 overflow-y-auto border-t border-border bg-background transition-[opacity,visibility] duration-300 lg:hidden",
+          isOpen ? "visible opacity-100" : "invisible opacity-0",
+        )}
+      >
+        <div className="site-container flex min-h-full flex-col py-6">
+          <ul className="flex flex-col">
+            {navLinks.map((link, index) => {
+              const active = isCurrentPage(link.href)
+              return (
+                <li
                   key={link.href}
-                  href={link.href}
-                  className={`text-2xl sm:text-3xl font-serif text-foreground hover:text-accent transition-all py-3 border-b border-border flex items-center justify-between group ${
-                    pathname === link.href ? "text-accent" : ""
-                  }`}
+                  className="border-b border-border transition-all duration-300"
                   style={{
-                    transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
-                    transform: isOpen ? "translateX(0)" : "translateX(-20px)",
+                    transitionDelay: isOpen ? `${index * 40}ms` : "0ms",
+                    transform: isOpen ? "translateY(0)" : "translateY(-8px)",
                     opacity: isOpen ? 1 : 0,
                   }}
                 >
-                  {link.label}
-                  <ArrowUpRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              ))}
-            </div>
+                  <Link
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    tabIndex={isOpen ? undefined : -1}
+                    className={cn(
+                      "flex items-center justify-between py-4 font-serif text-2xl transition-colors",
+                      active ? "text-accent-ink" : "text-foreground hover:text-accent-ink",
+                    )}
+                  >
+                    {link.label}
+                    <ArrowUpRight className="h-5 w-5 opacity-40" aria-hidden="true" />
+                  </Link>
 
-            <div
-              className="mt-8"
-              style={{
-                transitionDelay: isOpen ? `${navLinks.length * 50}ms` : "0ms",
-                transform: isOpen ? "translateY(0)" : "translateY(20px)",
-                opacity: isOpen ? 1 : 0,
-                transition: "all 0.3s ease",
-              }}
-            >
-              <Button
-                asChild
-                className="bg-primary hover:bg-primary/90 text-primary-foreground w-full h-14 rounded-lg text-base font-medium"
-              >
-                <Link href="/join">Become a Member</Link>
-              </Button>
-            </div>
+                  {/* Focus areas listed under What We Do so they are one tap away on mobile */}
+                  {link.hasMenu && (
+                    <ul className="-mt-1 grid grid-cols-2 gap-2 pb-4">
+                      {focusAreas.map((area) => (
+                        <li key={area.slug}>
+                          <Link
+                            href={`/what-we-do/${area.slug}`}
+                            tabIndex={isOpen ? undefined : -1}
+                            className="flex items-center gap-2.5 rounded-lg bg-secondary px-3 py-2.5 text-sm text-foreground"
+                          >
+                            <area.icon className="h-4 w-4 shrink-0 text-accent-ink" aria-hidden="true" />
+                            {area.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
 
-            {/* Contact Info */}
-            <div
-              className="mt-auto pt-10"
-              style={{
-                transitionDelay: isOpen ? `${(navLinks.length + 1) * 50}ms` : "0ms",
-                opacity: isOpen ? 1 : 0,
-                transition: "opacity 0.3s ease",
-              }}
+          <div className="mt-8 grid grid-cols-2 gap-3">
+            <Link
+              href="/join#donate"
+              tabIndex={isOpen ? undefined : -1}
+              className="flex h-12 items-center justify-center gap-2 rounded-full bg-marigold text-sm font-semibold text-marigold-foreground"
             >
-              <p className="text-muted-foreground text-sm mb-2">Get in touch</p>
-              <a href="mailto:info@team555nepal.org" className="text-foreground hover:text-accent transition-colors">
-                info@team555nepal.org
-              </a>
-            </div>
+              <Heart className="h-4 w-4" aria-hidden="true" />
+              Donate
+            </Link>
+            <Link
+              href="/join"
+              tabIndex={isOpen ? undefined : -1}
+              className="flex h-12 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground"
+            >
+              Become a Member
+            </Link>
+          </div>
+
+          {/* Contact Info */}
+          <div className="mt-auto space-y-3 pt-10 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Get in touch</p>
+            <a
+              href={`mailto:${siteContact.email}`}
+              tabIndex={isOpen ? undefined : -1}
+              className="flex items-center gap-3 text-foreground hover:text-accent-ink"
+            >
+              <Mail className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              {siteContact.email}
+            </a>
+            <p className="flex items-center gap-3 text-foreground">
+              <Phone className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              {siteContact.phone}
+            </p>
           </div>
         </div>
       </div>
-    </header>
+    </>
   )
 }

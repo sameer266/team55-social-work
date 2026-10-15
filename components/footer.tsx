@@ -1,9 +1,13 @@
+import Image from "next/image"
 import Link from "next/link"
-import { Facebook, Instagram, Twitter, Youtube, Mail, MapPin, Phone } from "lucide-react"
+import { ArrowRight, ArrowUp, Facebook, Instagram, Twitter, Youtube, Mail, MapPin, Phone } from "lucide-react"
+import { focusAreas } from "@/lib/focus-areas"
+import { organization, siteContact } from "@/lib/site-content"
 
 const footerLinks = {
-  organization: [
+  explore: [
     { href: "/about", label: "About Us" },
+    { href: "/what-we-do", label: "What We Do" },
     { href: "/projects", label: "Our Projects" },
     { href: "/gallery", label: "Gallery" },
     { href: "/about#team", label: "Our Team" },
@@ -23,135 +27,168 @@ const socialLinks = [
   { href: "#", icon: Youtube, label: "YouTube" },
 ]
 
+const headingClass = "mb-5 text-xs font-semibold uppercase tracking-[0.18em] text-accent"
+const linkClass = "text-sm text-background/70 transition-colors hover:text-background"
+
 export function Footer() {
   return (
-    <footer className="bg-foreground text-background">
+    <footer className="relative overflow-hidden bg-foreground text-background">
       {/* Newsletter */}
-      <div className="border-b border-background/10">
-        <div className="container mx-auto px-4 py-16">
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            <div>
-              <h3 className="font-serif text-2xl md:text-3xl text-background mb-2">
-                Stay <span className="text-accent italic">Connected</span>
-              </h3>
-              <p className="text-background/50 text-sm">
-                Subscribe for updates on our projects and impact stories.
-              </p>
-            </div>
-            <form className="flex gap-3">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-5 py-3 bg-background/5 border border-background/10 rounded-lg text-background text-sm placeholder:text-background/30 focus:outline-none focus:border-accent/50 transition-colors"
-              />
-              <button
-                type="submit"
-                className="px-6 py-3 bg-accent text-accent-foreground text-sm font-medium rounded-lg hover:bg-accent/90 transition-colors"
-              >
-                Subscribe
-              </button>
-            </form>
+      <div className="site-container pt-16 lg:pt-20">
+        <div className="grid items-center gap-8 rounded-2xl border border-background/10 bg-background/[0.04] p-7 sm:p-10 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <h2 className="font-serif text-3xl text-background md:text-4xl">
+              Stay <em className="font-normal italic text-accent">connected</em>
+            </h2>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-background/65">
+              Subscribe for updates on our projects and impact stories.
+            </p>
           </div>
+          <form className="flex flex-col gap-3 sm:flex-row">
+            <label htmlFor="newsletter-email" className="sr-only">
+              Email address
+            </label>
+            <input
+              id="newsletter-email"
+              type="email"
+              autoComplete="email"
+              required
+              placeholder="Enter your email"
+              className="h-12 flex-1 rounded-full border border-background/15 bg-background/5 px-5 text-sm text-background placeholder:text-background/45 transition-colors focus:border-accent focus:outline-none focus-visible:outline-accent"
+            />
+            <button
+              type="submit"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-6 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent/90"
+            >
+              Subscribe
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </form>
         </div>
       </div>
 
       {/* Main Footer */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+      <div className="site-container py-14 lg:py-16">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-12">
           {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
-                <span className="text-accent-foreground font-serif font-bold text-lg">T</span>
-              </div>
-              <div>
-                <span className="font-serif font-semibold text-lg text-background">TEAM555</span>
-                <p className="text-[10px] text-background/40 tracking-[0.15em] uppercase">Youth Service Nepal</p>
-              </div>
-            </div>
-            <p className="text-background/50 text-sm mb-6 leading-relaxed max-w-xs">
-              A movement of young Nepalis serving their communities and building something lasting.
-            </p>
-            <div className="flex gap-2">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  className="w-9 h-9 rounded-full border border-background/10 flex items-center justify-center text-background/50 hover:text-accent hover:border-accent/30 transition-colors"
-                  aria-label={social.label}
-                >
-                  <social.icon className="w-4 h-4" />
-                </a>
-              ))}
-            </div>
-          </div>
+          <div className="col-span-2 lg:col-span-4">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white">
+                <Image src="/images/team-555-logo.jpg" alt="" width={48} height={48} className="object-cover" />
+              </span>
+              <span className="leading-none">
+                <span className="block font-serif text-2xl font-semibold text-background">Team555</span>
+                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.22em] text-background/50">
+                  Youth Service Nepal
+                </span>
+              </span>
+            </Link>
+            <p className="mt-6 max-w-sm text-sm leading-relaxed text-background/70">{organization.mission}</p>
 
-          {/* Organization */}
-          <div>
-            <h4 className="text-[11px] font-medium tracking-[0.2em] uppercase text-background/30 mb-5">Organization</h4>
-            <ul className="space-y-3">
-              {footerLinks.organization.map((link) => (
-                <li key={link.href}>
-                  <Link href={link.href} className="text-background/50 hover:text-accent transition-colors text-sm">
-                    {link.label}
-                  </Link>
+            <address className="mt-7 space-y-3 not-italic">
+              <p className="flex items-start gap-3 text-sm text-background/70">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+                {siteContact.address}
+              </p>
+              <p className="flex items-center gap-3">
+                <Mail className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+                <a href={`mailto:${siteContact.email}`} className={linkClass}>
+                  {siteContact.email}
+                </a>
+              </p>
+              <p className="flex items-center gap-3 text-sm text-background/70">
+                <Phone className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+                {siteContact.phone}
+              </p>
+            </address>
+
+            <ul className="mt-7 flex gap-2">
+              {socialLinks.map((social) => (
+                <li key={social.label}>
+                  <a
+                    href={social.href}
+                    aria-label={social.label}
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-background/15 text-background/70 transition-colors hover:border-accent hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <social.icon className="h-4 w-4" aria-hidden="true" />
+                  </a>
                 </li>
               ))}
             </ul>
           </div>
 
+          {/* Explore */}
+          <nav aria-label="Explore" className="lg:col-span-2 lg:col-start-6">
+            <h3 className={headingClass}>Explore</h3>
+            <ul className="space-y-3">
+              {footerLinks.explore.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className={linkClass}>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {/* Our work */}
+          <nav aria-label="Our work" className="lg:col-span-3">
+            <h3 className={headingClass}>Our Work</h3>
+            <ul className="space-y-3">
+              {focusAreas.map((area) => (
+                <li key={area.slug}>
+                  <Link href={`/what-we-do/${area.slug}`} className={`${linkClass} inline-flex items-center gap-2.5`}>
+                    <area.icon className="h-4 w-4 text-background/40" aria-hidden="true" />
+                    {area.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
           {/* Get Involved */}
-          <div>
-            <h4 className="text-[11px] font-medium tracking-[0.2em] uppercase text-background/30 mb-5">Get Involved</h4>
+          <nav aria-label="Get involved" className="col-span-2 sm:col-span-1 lg:col-span-2">
+            <h3 className={headingClass}>Get Involved</h3>
             <ul className="space-y-3">
               {footerLinks.getInvolved.map((link) => (
                 <li key={link.href}>
-                  <Link href={link.href} className="text-background/50 hover:text-accent transition-colors text-sm">
+                  <Link href={link.href} className={linkClass}>
                     {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="text-[11px] font-medium tracking-[0.2em] uppercase text-background/30 mb-5">Contact</h4>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-background/30 mt-0.5 shrink-0" />
-                <span className="text-background/50 text-sm">Thamel, Kathmandu<br />Nepal 44600</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-background/30 shrink-0" />
-                <a href="mailto:hello@team555.org" className="text-background/50 hover:text-accent transition-colors text-sm">
-                  hello@team555.org
-                </a>
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-background/30 shrink-0" />
-                <span className="text-background/50 text-sm">+977 1-456-7890</span>
-              </li>
-            </ul>
-          </div>
+          </nav>
         </div>
       </div>
 
+      {/* Oversized wordmark: a quiet, classic sign-off */}
+      <div aria-hidden="true" className="site-container select-none">
+        <p className="-mb-[0.18em] font-serif text-[22vw] leading-none tracking-tight text-background/[0.05] lg:text-[13rem]">
+          Team555
+        </p>
+      </div>
+
       {/* Bottom */}
-      <div className="border-t border-background/10">
-        <div className="container mx-auto px-4 py-5">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-background/30 text-xs">
-              © {new Date().getFullYear()} Team555 Nepal. All rights reserved.
-            </p>
-            <div className="flex gap-6">
-              <Link href="/privacy" className="text-background/30 hover:text-accent transition-colors text-xs">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="text-background/30 hover:text-accent transition-colors text-xs">
-                Terms of Service
-              </Link>
-            </div>
+      <div className="relative border-t border-background/10">
+        <div className="site-container flex flex-col items-center justify-between gap-4 py-6 md:flex-row">
+          <p className="text-xs text-background/50">
+            © {new Date().getFullYear()} Team555 Nepal. Serving communities since {organization.founded}.
+          </p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="text-xs text-background/50 transition-colors hover:text-background">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="text-xs text-background/50 transition-colors hover:text-background">
+              Terms of Service
+            </Link>
+            <a
+              href="#main"
+              className="inline-flex items-center gap-1.5 rounded-full border border-background/15 px-3 py-1.5 text-xs text-background/70 transition-colors hover:border-accent hover:text-accent"
+            >
+              <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+              Back to top
+            </a>
           </div>
         </div>
       </div>

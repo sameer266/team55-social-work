@@ -1,7 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
 import { ArrowRight, Heart, Users, Calendar } from "lucide-react"
+import { SectionHeading } from "@/components/ui/section-heading"
 
 const ctaOptions = [
   {
@@ -15,82 +15,85 @@ const ctaOptions = [
     icon: Heart,
     title: "Support Our Cause",
     description: "Your contribution helps us reach more communities and create lasting change.",
-    link: "/donate",
+    link: "/join#donate",
     linkText: "Donate"
   },
   {
     icon: Calendar,
     title: "Partner With Us",
     description: "Organizations and businesses can collaborate with us for greater impact.",
-    link: "/partner",
+    link: "/join#partner",
     linkText: "Learn More"
   },
 ]
 
 export function CTASection() {
   return (
-    <section className="relative py-24 md:py-32 overflow-hidden">
+    <section className="section-y relative isolate overflow-hidden bg-foreground">
       {/* Background */}
-      <div className="absolute inset-0">
-        <Image
-          src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1920&q=80"
-          alt=""
-          fill
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-foreground/90" />
-      </div>
+      <Image
+        src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1920&q=80"
+        alt=""
+        fill
+        sizes="100vw"
+        className="-z-20 object-cover"
+      />
+      <div className="absolute inset-0 -z-10 bg-foreground/90" />
 
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+      <div className="site-container">
+        <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-24">
           {/* Left */}
           <div>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="h-px w-10 bg-accent/50" />
-              <span className="text-accent font-medium tracking-[0.2em] uppercase text-xs">
-                Get Involved
-              </span>
-            </div>
-            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-background mb-5 leading-tight">
-              Ready to Make a <span className="text-accent italic">Difference?</span>
-            </h2>
-            <p className="text-background/60 text-base leading-relaxed mb-8 max-w-md">
-              Whether you want to volunteer, support our initiatives, or partner with us, 
-              there are many ways to be part of this movement.
-            </p>
-            <Button 
-              asChild 
-              size="lg"
-              className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-lg h-12 px-8 text-sm font-medium transition-colors"
+            <SectionHeading
+              tone="dark"
+              eyebrow="Get involved"
+              title={
+                <>
+                  Ready to make a <em>difference?</em>
+                </>
+              }
+              description="Whether you want to volunteer, support our initiatives, or partner with us, there are many ways to be part of this movement."
+            />
+            <Link
+              href="/join"
+              className="mt-9 inline-flex h-12 items-center gap-2 rounded-full bg-accent px-7 text-sm font-semibold text-accent-foreground transition-colors hover:bg-accent/90"
             >
-              <Link href="/join">
-                Start Your Journey
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-            </Button>
+              Start Your Journey
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
           </div>
 
           {/* Right */}
-          <div className="space-y-4">
+          <ul className="space-y-3">
             {ctaOptions.map((option) => (
-              <Link
-                key={option.title}
-                href={option.link}
-                className="group flex items-start gap-5 p-6 border border-background/10 rounded-xl hover:bg-background/5 transition-colors"
-              >
-                <option.icon className="w-5 h-5 text-accent mt-0.5 shrink-0" />
-                <div>
-                  <h3 className="text-base font-medium text-background mb-1 group-hover:text-accent transition-colors">
-                    {option.title}
-                  </h3>
-                  <p className="text-background/50 text-sm leading-relaxed">
-                    {option.description}
-                  </p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-background/30 group-hover:text-accent ml-auto mt-0.5 shrink-0 transition-colors" />
-              </Link>
+              <li key={option.title}>
+                <Link
+                  href={option.link}
+                  className="group flex items-start gap-5 rounded-xl border border-background/15 bg-background/[0.03] p-6 transition-colors hover:border-accent/50 hover:bg-background/[0.07]"
+                >
+                  <span
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+                      option.link === "/join#donate" ? "bg-marigold/15 text-marigold" : "bg-accent/15 text-accent"
+                    }`}
+                  >
+                    <option.icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="flex-1">
+                    <span className="block font-serif text-xl text-background">{option.title}</span>
+                    <span className="mt-1 block text-sm leading-relaxed text-background/65">{option.description}</span>
+                    <span
+                      className={`mt-3 inline-flex items-center gap-1.5 text-sm font-semibold ${
+                        option.link === "/join#donate" ? "text-marigold" : "text-accent"
+                      }`}
+                    >
+                      {option.linkText}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                    </span>
+                  </span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </div>
     </section>

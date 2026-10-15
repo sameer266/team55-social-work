@@ -1,21 +1,22 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
-import { Users, FolderOpen, MapPin, HeartHandshake } from "lucide-react"
-
-const stats = [
-  { value: 5000, suffix: "+", label: "Active Volunteers", icon: Users },
-  { value: 150, suffix: "+", label: "Projects Completed", icon: FolderOpen },
-  { value: 75, suffix: "", label: "Districts Reached", icon: MapPin },
-  { value: 50000, suffix: "+", label: "Lives Impacted", icon: HeartHandshake },
-]
+import { useEffect, useRef, useState } from "react"
+import { SectionHeading } from "@/components/ui/section-heading"
+import { siteStats } from "@/lib/site-content"
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   const [count, setCount] = useState(0)
-  const ref = useRef<HTMLDivElement>(null)
+  const ref = useRef<HTMLSpanElement>(null)
   const [hasAnimated, setHasAnimated] = useState(false)
 
   useEffect(() => {
+    // Respect reduced-motion: show the final number straight away
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCount(value)
+      setHasAnimated(true)
+      return
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated) {
@@ -46,44 +47,41 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   }, [value, hasAnimated])
 
   return (
-    <div ref={ref} className="font-serif text-4xl sm:text-5xl text-foreground font-bold tracking-tight">
-      {count.toLocaleString()}{suffix}
-    </div>
+    <span ref={ref} className="font-serif text-5xl tabular-nums text-background sm:text-6xl">
+      {count.toLocaleString()}
+      <span className="text-accent">{suffix}</span>
+    </span>
   )
 }
 
 export function StatsSection() {
   return (
-    <section className="py-24 md:py-32 bg-background">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-3 mb-5">
-            <div className="h-px w-10 bg-accent/50" />
-            <span className="text-accent font-medium tracking-[0.2em] uppercase text-xs">
-              Our Impact
-            </span>
-            <div className="h-px w-10 bg-accent/50" />
+    <section className="section-y bg-foreground">
+      <div className="site-container">
+        <div className="grid gap-12 lg:grid-cols-12 lg:items-center lg:gap-16">
+          <div className="lg:col-span-5">
+            <SectionHeading
+              tone="dark"
+              eyebrow="Our impact"
+              title={
+                <>
+                  Numbers that <em>matter</em>
+                </>
+              }
+              description="Every figure is a person, a classroom, or a village that our volunteers have shown up for."
+            />
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-foreground leading-tight">
-            Numbers That <span className="text-primary italic">Matter</span>
-          </h2>
-        </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border rounded-2xl overflow-hidden">
-          {stats.map((stat) => (
-            <div 
-              key={stat.label}
-              className="bg-background p-8 md:p-10 text-center group hover:bg-muted/30 transition-colors duration-300"
-            >
-              <stat.icon className="w-5 h-5 text-accent mx-auto mb-5 opacity-60" />
-              <AnimatedCounter value={stat.value} suffix={stat.suffix} />
-              <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase mt-3">
-                {stat.label}
-              </p>
-            </div>
-          ))}
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-10 lg:col-span-7 lg:gap-x-10">
+            {siteStats.map((stat) => (
+              <div key={stat.label} className="flex flex-col-reverse border-t border-background/15 pt-6">
+                <dt className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-background/60">{stat.label}</dt>
+                <dd>
+                  <AnimatedCounter value={stat.value} suffix={stat.suffix} />
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </div>
     </section>

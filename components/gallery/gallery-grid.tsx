@@ -1,8 +1,9 @@
 "use client"
 
 import Image from "next/image"
-import { useState } from "react"
-import { X, ChevronLeft, ChevronRight, Play, Pause, Images, Film } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { X, ChevronLeft, ChevronRight, Play, Images, Film } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 type MediaType = "image" | "video"
 type CategoryType = "all" | "community" | "education" | "environment" | "healthcare" | "events"
@@ -149,228 +150,330 @@ const categories: { value: CategoryType; label: string }[] = [
 
 type ViewMode = "all" | "albums"
 
+const PAGE_SIZE = 8
+
 export function GalleryGrid() {
   const [selectedMedia, setSelectedMedia] = useState<number | null>(null)
   const [activeCategory, setActiveCategory] = useState<CategoryType>("all")
+  const [activeAlbum, setActiveAlbum] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>("all")
   const [isVideoPlaying, setIsVideoPlaying] = useState(false)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const lastTriggerRef = useRef<HTMLElement | null>(null)
 
-  const filteredMedia = activeCategory === "all"
-    ? mediaItems
-    : mediaItems.filter((item) => item.category === activeCategory)
+  const filteredMedia = useMemo(
+    () =>
+      mediaItems.filter(
+        (item) =>
+          (activeAlbum === null || item.albumId === activeAlbum) &&
+          (activeCategory === "all" || item.category === activeCategory),
+      ),
+    [activeAlbum, activeCategory],
+  )
+  const shownMedia = filteredMedia.slice(0, visibleCount)
+  const hasMore = filteredMedia.length > visibleCount
+  const activeAlbumData = albums.find((album) => album.id === activeAlbum)
 
-  const openLightbox = (id: number) => {
+  const chooseCategory = (category: CategoryType) => {
+    setActiveCategory(category)
+    setVisibleCount(PAGE_SIZE)
+  }
+
+  // Opening an album now shows that album's media instead of jumping back to everything
+  const openAlbum = (id: number) => {
+    setActiveAlbum(id)
+    setActiveCategory("all")
+    setViewMode("all")
+    setVisibleCount(PAGE_SIZE)
+  }
+
+  const clearAlbum = () => {
+    setActiveAlbum(null)
+    setVisibleCount(PAGE_SIZE)
+  }
+
+  const openLightbox = (id: number, trigger: HTMLElement) => {
+    lastTriggerRef.current = trigger
     setSelectedMedia(id)
     setIsVideoPlaying(false)
   }
-  const closeLightbox = () => {
+
+  const closeLightbox = useCallback(() => {
     setSelectedMedia(null)
     setIsVideoPlaying(false)
-  }
+    lastTriggerRef.current?.focus()
+  }, [])
 
-  const navigateMedia = (direction: "prev" | "next") => {
-    if (selectedMedia === null) return
-    const currentIndex = filteredMedia.findIndex((item) => item.id === selectedMedia)
-    const newIndex = direction === "next"
-      ? (currentIndex + 1) % filteredMedia.length
-      : (currentIndex - 1 + filteredMedia.length) % filteredMedia.length
-    setSelectedMedia(filteredMedia[newIndex].id)
-    setIsVideoPlaying(false)
-  }
+  const navigateMedia = useCallback(
+    (direction: "prev" | "next") => {
+      if (selectedMedia === null) return
+      const currentIndex = filteredMedia.findIndex((item) => item.id === selectedMedia)
+      const newIndex = direction === "next"
+        ? (currentIndex + 1) % filteredMedia.length
+        : (currentIndex - 1 + filteredMedia.length) % filteredMedia.length
+      setSelectedMedia(filteredMedia[newIndex].id)
+      setIsVideoPlaying(false)
+    },
+    [selectedMedia, filteredMedia],
+  )
+
+  const isLightboxOpen = selectedMedia !== null
+
+  // Lock page scroll and move focus into the lightbox while it is open
+  useEffect(() => {
+    if (!isLightboxOpen) return
+    document.body.style.overflow = "hidden"
+    closeButtonRef.current?.focus()
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [isLightboxOpen])
+
+  // Keyboard: Escape closes, arrow keys move between items
+  useEffect(() => {
+    if (!isLightboxOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeLightbox()
+      if (event.key === "ArrowRight") navigateMedia("next")
+      if (event.key === "ArrowLeft") navigateMedia("prev")
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [isLightboxOpen, closeLightbox, navigateMedia])
 
   const currentMedia = mediaItems.find((item) => item.id === selectedMedia)
 
   return (
-    <section className="py-24 md:py-32 bg-background relative overflow-hidden">
-      {/* Decorative Blob */}
-      <div className="absolute top-[30%] -left-64 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* View Mode Toggle & Filters */}
-        <div className="flex flex-col gap-8 mb-16 md:mb-20">
-          {/* View Mode Toggle */}
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => setViewMode("all")}
-              className={`flex flex-row items-center gap-3 px-8 sm:px-10 py-3 sm:py-4 rounded-full text-sm font-bold uppercase tracking-widest transition-all ${
-                viewMode === "all"
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
-                  : "bg-background border border-border text-foreground hover:bg-secondary/50 hover:border-primary/30"
-              }`}
-            >
-              <Images className="w-5 h-5" />
-              <span className="hidden sm:inline">All Media</span>
-              <span className="sm:hidden">All</span>
-            </button>
-            <button
-              onClick={() => setViewMode("albums")}
-              className={`flex flex-row items-center gap-3 px-8 sm:px-10 py-3 sm:py-4 rounded-full text-sm font-bold uppercase tracking-widest transition-all ${
-                viewMode === "albums"
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
-                  : "bg-background border border-border text-foreground hover:bg-secondary/50 hover:border-primary/30"
-              }`}
-            >
-              <Film className="w-5 h-5" />
-              <span className="hidden sm:inline">Albums</span>
-              <span className="sm:hidden">Albums</span>
-            </button>
+    <section className="section-y bg-background">
+      <div className="site-container">
+        {/* View mode and category filters use the same underline tabs as the Projects page */}
+        <div className="mb-10 flex flex-col gap-5">
+          <div role="group" aria-label="Choose view" className="flex gap-1 border-b border-border">
+            {[
+              { value: "all" as const, label: "All media", icon: Images },
+              { value: "albums" as const, label: "Albums", icon: Film },
+            ].map((mode) => (
+              <button
+                key={mode.value}
+                type="button"
+                aria-pressed={viewMode === mode.value}
+                onClick={() => setViewMode(mode.value)}
+                className={cn(
+                  "-mb-px inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm transition-colors",
+                  viewMode === mode.value
+                    ? "border-accent-ink font-semibold text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <mode.icon className="h-4 w-4" aria-hidden="true" />
+                {mode.label}
+              </button>
+            ))}
           </div>
 
-          {/* Category Filters */}
           {viewMode === "all" && (
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-4">
-              {categories.map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => setActiveCategory(cat.value)}
-                  className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-[13px] font-semibold tracking-wider transition-all duration-300 ${
-                    activeCategory === cat.value
-                      ? "bg-foreground text-background shadow-md shadow-foreground/10"
-                      : "bg-transparent text-foreground border border-border hover:border-primary/50 hover:bg-primary/5"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                role="group"
+                aria-label="Filter by category"
+                className="-mx-1 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {categories.map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    aria-pressed={activeCategory === cat.value}
+                    onClick={() => chooseCategory(cat.value)}
+                    className={cn(
+                      "shrink-0 rounded-full px-4 py-2 text-sm transition-colors",
+                      activeCategory === cat.value
+                        ? "bg-primary font-semibold text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+              <p className="shrink-0 text-sm text-muted-foreground" aria-live="polite">
+                {filteredMedia.length} {filteredMedia.length === 1 ? "item" : "items"}
+              </p>
+            </div>
+          )}
+
+          {viewMode === "all" && activeAlbumData && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+              <Film className="h-4 w-4 text-accent-ink" aria-hidden="true" />
+              <span className="text-muted-foreground">
+                Album: <span className="font-semibold text-foreground">{activeAlbumData.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={clearAlbum}
+                className="ml-auto inline-flex items-center gap-1.5 font-medium text-foreground underline underline-offset-4 hover:text-accent-ink"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                Show all media
+              </button>
             </div>
           )}
         </div>
 
         {/* Albums View */}
         {viewMode === "albums" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 mb-12 md:mb-16">
+          <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
             {albums.map((album) => (
-              <button
-                key={album.id}
-                className="group relative aspect-[4/3] rounded-[2rem] overflow-hidden text-left shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-border/50"
-                onClick={() => setViewMode("all")}
-              >
-                <Image
-                  src={album.coverImage}
-                  alt={album.name}
-                  fill
-                  className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500" />
-                <div className="absolute inset-0 p-8 flex flex-col justify-end transform translate-y-2 group-hover:translate-y-0 transition-all duration-500">
-                  <h3 className="font-serif text-2xl lg:text-3xl text-white mb-2">{album.name}</h3>
-                  <p className="text-white/80 font-medium tracking-wide">{album.itemCount} items</p>
-                </div>
-              </button>
+              <li key={album.id}>
+                <button
+                  type="button"
+                  className="group relative block aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted text-left"
+                  onClick={() => openAlbum(album.id)}
+                >
+                  <Image
+                    src={album.coverImage}
+                    alt=""
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
+                  <span className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/15 to-transparent" />
+                  <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-6">
+                    <span>
+                      <span className="block font-serif text-2xl text-white">{album.name}</span>
+                      <span className="mt-1 block text-sm text-white/75">{album.itemCount} items</span>
+                    </span>
+                    <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
+                      Open album
+                    </span>
+                  </span>
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
 
         {/* Media Grid */}
         {viewMode === "all" && (
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 sm:gap-8 space-y-6 sm:space-y-8">
-            {filteredMedia.map((item, index) => (
-              <div
-                key={item.id}
-                className="break-inside-avoid group cursor-pointer"
-                onClick={() => openLightbox(item.id)}
-              >
-                <div className="relative overflow-hidden rounded-[2rem] shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
-                  <div
-                    className={`relative w-full ${
-                      index % 5 === 0 ? "aspect-[3/4]" :
-                      index % 5 === 1 ? "aspect-square" :
-                      index % 5 === 2 ? "aspect-[4/3]" :
-                      index % 5 === 3 ? "aspect-[16/10]" : "aspect-[3/5]"
-                    }`}
-                  >
-                    <Image
-                      src={item.type === "video" ? item.thumbnail! : item.src}
-                      alt={item.title}
-                      fill
-                      className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    />
-                  </div>
-
-                  {/* Video Play Icon */}
-                  {item.type === "video" && (
-                     <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <div className="w-16 h-16 rounded-full bg-accent/90 backdrop-blur-md flex items-center justify-center group-hover:bg-accent transition-all duration-500 group-hover:scale-110 shadow-lg shadow-accent/20">
-                           <Play className="w-6 h-6 text-accent-foreground ml-1" />
-                        </div>
-                     </div>
-                  )}
-
-                  {/* Overlay Gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                  {/* Content */}
-                  <div className="absolute inset-0 p-6 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
-                    <div className="flex flex-row items-center gap-3 mb-3">
-                      <span className="px-3 py-1 bg-accent/90 backdrop-blur-sm rounded-full text-accent-foreground text-[10px] font-bold tracking-widest uppercase">
-                        {item.category}
-                      </span>
-                      {item.type === "video" && (
-                        <span className="text-white/80 font-medium text-xs tracking-wider uppercase">Video</span>
-                      )}
-                    </div>
-                    <h3 className="font-serif text-xl sm:text-2xl text-white leading-snug">{item.title}</h3>
-                  </div>
-                </div>
+          <>
+            {shownMedia.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border px-6 py-20 text-center">
+                <p className="font-serif text-2xl text-foreground">Nothing here yet.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Try another category.</p>
               </div>
-            ))}
-          </div>
-        )}
+            ) : (
+              <ul className="columns-1 gap-5 sm:columns-2 lg:columns-3 xl:columns-4">
+                {shownMedia.map((item, index) => (
+                  <li key={item.id} className="mb-5 break-inside-avoid">
+                    <button
+                      type="button"
+                      onClick={(event) => openLightbox(item.id, event.currentTarget)}
+                      aria-label={`${item.type === "video" ? "Play video" : "View photo"}: ${item.title}`}
+                      className="group relative block w-full overflow-hidden rounded-xl bg-muted text-left"
+                    >
+                      <span
+                        className={cn(
+                          "relative block w-full",
+                          index % 5 === 0 ? "aspect-[3/4]" :
+                          index % 5 === 1 ? "aspect-square" :
+                          index % 5 === 2 ? "aspect-[4/3]" :
+                          index % 5 === 3 ? "aspect-[16/10]" : "aspect-[3/5]",
+                        )}
+                      >
+                        <Image
+                          src={item.type === "video" ? item.thumbnail! : item.src}
+                          alt=""
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        />
+                      </span>
 
-        {/* Load More Button */}
-        {viewMode === "all" && (
-          <div className="text-center mt-16 md:mt-24">
-            <button className="px-10 sm:px-12 py-4 sm:py-5 rounded-full border border-primary/20 text-foreground text-sm font-bold tracking-widest uppercase hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-1">
-              Load More Gallery
-            </button>
-          </div>
+                      {/* Video Play Icon */}
+                      {item.type === "video" && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg transition-transform duration-300 group-hover:scale-110">
+                            <Play className="ml-0.5 h-5 w-5" aria-hidden="true" />
+                          </span>
+                        </span>
+                      )}
+
+                      {/* Caption: always visible so touch users get it too */}
+                      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/85 via-foreground/40 to-transparent p-5 pt-12">
+                        <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent">
+                          {item.category}
+                          {item.type === "video" && <span className="text-white/70">· Video</span>}
+                        </span>
+                        <span className="mt-1 block font-serif text-lg leading-snug text-white">{item.title}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="mt-12 text-center md:mt-16">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+                  className="inline-flex h-12 items-center rounded-full border border-foreground/20 px-8 text-sm font-semibold text-foreground transition-colors hover:border-foreground hover:bg-foreground hover:text-background"
+                >
+                  Load More Gallery
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Lightbox */}
-      {selectedMedia !== null && currentMedia && (
+      {isLightboxOpen && currentMedia && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label={currentMedia.title}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/95 backdrop-blur-sm"
           onClick={closeLightbox}
         >
           {/* Close Button */}
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={closeLightbox}
-            className="absolute top-6 right-6 sm:top-8 sm:right-8 w-12 h-12 flex items-center justify-center bg-white/10 rounded-full text-white/90 hover:text-white hover:bg-accent transition-all duration-300 z-10"
-            aria-label="Close lightbox"
+            className="absolute right-4 top-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-accent hover:text-accent-foreground sm:right-8 sm:top-8"
+            aria-label="Close"
           >
-            <X className="w-6 h-6" />
+            <X className="h-6 w-6" aria-hidden="true" />
           </button>
 
           {/* Navigation */}
           <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); navigateMedia("prev") }}
-            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-white/5 rounded-full text-white/70 hover:text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 z-10"
+            className="absolute left-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:left-8 sm:h-14 sm:w-14"
             aria-label="Previous"
           >
-            <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
+            <ChevronLeft className="h-6 w-6" aria-hidden="true" />
           </button>
           <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); navigateMedia("next") }}
-            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center bg-white/5 rounded-full text-white/70 hover:text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 z-10"
+            className="absolute right-3 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:right-8 sm:h-14 sm:w-14"
             aria-label="Next"
           >
-            <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
+            <ChevronRight className="h-6 w-6" aria-hidden="true" />
           </button>
 
           {/* Media Content */}
-          <div
-            className="max-w-6xl w-full mx-4 sm:mx-8 md:mx-16 mt-10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative shadow-2xl rounded-2xl overflow-hidden ring-1 ring-white/10">
+          <div className="mx-4 w-full max-w-5xl sm:mx-20" onClick={(e) => e.stopPropagation()}>
+            <div className="relative overflow-hidden rounded-xl ring-1 ring-white/10">
               {currentMedia.type === "video" ? (
-                <div className="relative aspect-video bg-black flex items-center justify-center">
+                <div className="relative flex aspect-video items-center justify-center bg-black">
                   <video
                     src={currentMedia.src}
-                    className="w-full h-full object-contain"
+                    className="h-full w-full object-contain"
                     controls={isVideoPlaying}
                     autoPlay={isVideoPlaying}
                     onClick={(e) => {
@@ -380,37 +483,37 @@ export function GalleryGrid() {
                   />
                   {!isVideoPlaying && (
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation()
                         setIsVideoPlaying(true)
                       }}
-                      className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm group"
+                      aria-label={`Play ${currentMedia.title}`}
+                      className="group absolute inset-0 flex items-center justify-center bg-black/40"
                     >
-                      <div className="w-20 h-20 rounded-full bg-accent/90 flex items-center justify-center group-hover:bg-accent group-hover:scale-110 transition-all duration-300 shadow-xl shadow-accent/20">
-                        <Play className="w-8 h-8 text-accent-foreground ml-1" />
-                      </div>
+                      <span className="flex h-20 w-20 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-xl transition-transform duration-300 group-hover:scale-110">
+                        <Play className="ml-1 h-8 w-8" aria-hidden="true" />
+                      </span>
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="relative w-full overflow-hidden bg-black/50" style={{ maxHeight: '75vh' }}>
-                   <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=50&q=10')] bg-cover bg-center blur-3xl opacity-30" />
-                   <img
-                     src={currentMedia.src}
-                     alt={currentMedia.title}
-                     className="object-contain max-h-[75vh] w-auto mx-auto relative z-10"
-                     draggable={false}
-                   />
+                <div className="flex max-h-[72vh] w-full justify-center bg-black/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentMedia.src}
+                    alt={currentMedia.title}
+                    className="max-h-[72vh] w-auto object-contain"
+                    draggable={false}
+                  />
                 </div>
               )}
             </div>
-            
-            <div className="text-center mt-8 px-4">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-white/90 text-xs font-bold tracking-widest uppercase mb-4">
-                 {currentMedia.category}
-              </span>
-              <h3 className="font-serif text-2xl sm:text-4xl text-white mb-4 leading-tight">{currentMedia.title}</h3>
-              <p className="text-white/70 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">{currentMedia.description}</p>
+
+            <div className="mt-6 px-4 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{currentMedia.category}</p>
+              <h2 className="mt-2 font-serif text-2xl leading-tight text-white sm:text-3xl">{currentMedia.title}</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/75">{currentMedia.description}</p>
             </div>
           </div>
         </div>

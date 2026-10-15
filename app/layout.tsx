@@ -1,20 +1,24 @@
-import type { Metadata } from 'next'
-import { Inter, Playfair_Display } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 
-const inter = Inter({ 
+// Body: Plus Jakarta Sans, friendly and very legible at small sizes.
+const body = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: 'swap',
+  variable: '--font-body',
 });
 
-const playfair = Playfair_Display({ 
+// Display: Fraunces, a warm modern-classic serif with an expressive italic for emphasised words.
+const display = Fraunces({
   subsets: ["latin"],
   display: 'swap',
-  variable: '--font-playfair',
-  weight: ['400', '500', '600', '700'],
+  variable: '--font-display',
+  style: ['normal', 'italic'],
+  axes: ['opsz', 'SOFT'],
 });
 
 export const metadata: Metadata = {
@@ -40,16 +44,26 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  themeColor: '#f9f7f2',
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} ${playfair.variable} antialiased`}>
+    <html lang="en" className={`${body.variable} ${display.variable}`}>
+      <body className="antialiased">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+        >
+          Skip to content
+        </a>
         <Navbar />
-        <main>{children}</main>
+        <main id="main">{children}</main>
         <Footer />
         <Analytics />
       </body>

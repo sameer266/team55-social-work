@@ -2,6 +2,9 @@
 
 import { useState } from "react"
 import { Plus, Minus } from "lucide-react"
+import { SectionHeading } from "@/components/ui/section-heading"
+import { siteContact } from "@/lib/site-content"
+import { cn } from "@/lib/utils"
 
 const faqs = [
   {
@@ -34,57 +37,73 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   return (
-    <section className="py-24 md:py-32 bg-background">
-      <div className="container mx-auto px-4">
-        <div className="max-w-2xl mx-auto">
+    <section id="faq" className="section-y bg-background">
+      <div className="site-container">
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
           {/* Header */}
-          <div className="text-center mb-14">
-            <div className="flex items-center justify-center gap-3 mb-5">
-              <div className="h-px w-10 bg-accent/50" />
-              <span className="text-accent font-medium tracking-[0.2em] uppercase text-xs">
-                FAQ
-              </span>
-              <div className="h-px w-10 bg-accent/50" />
+          <div className="lg:col-span-4">
+            <div className="lg:sticky lg:top-32">
+              <SectionHeading
+                eyebrow="FAQ"
+                title={
+                  <>
+                    Common <em>questions</em>
+                  </>
+                }
+              />
+              <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+                Can't find what you're looking for? Write to us at{" "}
+                <a href={`mailto:${siteContact.email}`} className="font-medium text-foreground underline underline-offset-4 hover:text-accent-ink">
+                  {siteContact.email}
+                </a>
+                .
+              </p>
             </div>
-            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-foreground leading-tight">
-              Common <span className="text-primary italic">Questions</span>
-            </h2>
           </div>
 
           {/* FAQ Items */}
-          <div className="divide-y divide-border">
-            {faqs.map((faq, index) => (
-              <div key={index} className="py-6">
-                <button
-                  onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                  className="w-full flex items-start justify-between gap-4 text-left"
-                >
-                  <h3 className={`font-medium text-base transition-colors ${
-                    openIndex === index ? "text-foreground" : "text-foreground/70"
-                  }`}>
-                    {faq.question}
+          <div className="divide-y divide-border border-y border-border lg:col-span-8">
+            {faqs.map((faq, index) => {
+              const isOpen = openIndex === index
+              const buttonId = `faq-button-${index}`
+              const panelId = `faq-panel-${index}`
+              return (
+                <div key={faq.question}>
+                  <h3>
+                    <button
+                      id={buttonId}
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      onClick={() => setOpenIndex(isOpen ? null : index)}
+                      className="flex w-full items-center justify-between gap-6 py-6 text-left"
+                    >
+                      <span className={cn("font-serif text-lg transition-colors sm:text-xl", isOpen ? "text-foreground" : "text-foreground/80")}>
+                        {faq.question}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors",
+                          isOpen ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground",
+                        )}
+                      >
+                        {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </span>
+                    </button>
                   </h3>
-                  <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-colors ${
-                    openIndex === index 
-                      ? "bg-accent text-accent-foreground" 
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    {openIndex === index ? (
-                      <Minus className="w-3.5 h-3.5" />
-                    ) : (
-                      <Plus className="w-3.5 h-3.5" />
-                    )}
+                  <div
+                    id={panelId}
+                    role="region"
+                    aria-labelledby={buttonId}
+                    hidden={!isOpen}
+                    className="pb-6 pr-0 sm:pr-16"
+                  >
+                    <p className="text-base leading-relaxed text-muted-foreground">{faq.answer}</p>
                   </div>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${
-                  openIndex === index ? "max-h-96 mt-3" : "max-h-0"
-                }`}>
-                  <p className="text-muted-foreground text-sm leading-relaxed pr-12">
-                    {faq.answer}
-                  </p>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>

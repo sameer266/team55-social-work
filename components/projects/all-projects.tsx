@@ -1,151 +1,181 @@
 "use client"
 
-import Image from "next/image"
-import { MapPin, Users, Calendar, ArrowRight } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Search, X } from "lucide-react"
+import { socialProjects, type SocialProject } from "@/lib/social-projects"
+import { FeaturedProjectCard, ProjectCard } from "@/components/projects/project-card"
+import { cn } from "@/lib/utils"
 
-const projects = [
-  {
-    id: "education",
-    category: "Education",
-    title: "Shiksha Sathi Program",
-    description: "Providing scholarships and educational resources to 500+ students in remote Himalayan villages, ensuring no child is left behind in their pursuit of knowledge.",
-    image: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=800&q=80",
-    location: "12 Districts",
-    volunteers: "200+",
-    year: "2022-Present",
-    achievements: ["500+ students supported", "25 schools partnered", "95% retention rate"],
-  },
-  {
-    id: "education-2",
-    category: "Education",
-    title: "Youth Mentorship Program",
-    description: "Connecting university students with high schoolers in rural areas for career guidance, academic support, and life skills training.",
-    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&q=80",
-    location: "Kathmandu Valley",
-    volunteers: "150+",
-    year: "2023-Present",
-    achievements: ["300+ mentorship pairings", "Monthly workshops", "Career guidance series"],
-  },
-  {
-    id: "environment",
-    category: "Environment",
-    title: "Hariyo Nepal Campaign",
-    description: "A massive reforestation initiative planting 50,000 trees across deforested regions, engaging local communities in sustainable environmental practices.",
-    image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80",
-    location: "8 Mountain Districts",
-    volunteers: "500+",
-    year: "2021-Present",
-    achievements: ["50,000+ trees planted", "100 hectares covered", "Community nurseries"],
-  },
-  {
-    id: "environment-2",
-    category: "Environment",
-    title: "River Cleanup Initiative",
-    description: "Weekly cleanup drives along the Bagmati and other rivers, combined with community awareness programs on water conservation and pollution prevention.",
-    image: "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=800&q=80",
-    location: "Bagmati Basin",
-    volunteers: "300+",
-    year: "2020-Present",
-    achievements: ["100+ cleanup drives", "20 tons waste removed", "Monitoring network"],
-  },
-  {
-    id: "healthcare",
-    category: "Healthcare",
-    title: "Swasthya Sewa Mobile Clinics",
-    description: "Mobile health clinics bringing essential medical care to the most remote corners of Nepal, where healthcare facilities are a distant dream.",
-    image: "https://images.unsplash.com/photo-1584515933487-779824d29309?w=800&q=80",
-    location: "15 Remote Districts",
-    volunteers: "100+",
-    year: "2021-Present",
-    achievements: ["15,000+ patients treated", "120 health camps", "45 doctors engaged"],
-  },
-  {
-    id: "community",
-    category: "Community",
-    title: "Disaster Response Network",
-    description: "Rapid deployment teams providing emergency supplies, shelter, and support to communities affected by floods, earthquakes, and other natural disasters.",
-    image: "https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=800&q=80",
-    location: "All 7 Provinces",
-    volunteers: "500+",
-    year: "2020-Present",
-    achievements: ["10,000+ families helped", "24-hour response", "Emergency supplies"],
-  },
+type Area = "All" | SocialProject["category"]
+type SortKey = "featured" | "volunteers" | "title"
+
+const areas: Area[] = ["All", "Education", "Environment", "Healthcare", "Community"]
+
+const sortOptions: { value: SortKey; label: string }[] = [
+  { value: "featured", label: "Featured" },
+  { value: "volunteers", label: "Most volunteers" },
+  { value: "title", label: "A to Z" },
 ]
 
+// "200+" -> 200, so volunteer counts can be sorted numerically
+const volunteerCount = (value: string) => parseInt(value.replace(/\D/g, ""), 10) || 0
+
+const countByArea = Object.fromEntries(
+  areas.map((area) => [
+    area,
+    area === "All" ? socialProjects.length : socialProjects.filter((p) => p.category === area).length,
+  ]),
+) as Record<Area, number>
+
 export function AllProjects() {
+  const [area, setArea] = useState<Area>("All")
+  const [query, setQuery] = useState("")
+  const [sort, setSort] = useState<SortKey>("featured")
+
+  const needle = query.trim().toLowerCase()
+  const isFiltered = area !== "All" || needle !== ""
+
+  const visible = useMemo(() => {
+    const matches = socialProjects.filter((project) => {
+      if (area !== "All" && project.category !== area) return false
+      if (!needle) return true
+      return [project.title, project.description, project.location, project.category]
+        .join(" ")
+        .toLowerCase()
+        .includes(needle)
+    })
+
+    if (sort === "volunteers") {
+      return [...matches].sort((a, b) => volunteerCount(b.volunteers) - volunteerCount(a.volunteers))
+    }
+    if (sort === "title") {
+      return [...matches].sort((a, b) => a.title.localeCompare(b.title))
+    }
+    return matches
+  }, [area, needle, sort])
+
+  // The lead project gets the feature card only when the list is showing everything
+  const showFeatured = !isFiltered && visible.length > 1
+  const [featured, ...rest] = visible
+  const gridProjects = showFeatured ? rest : visible
+
+  const reset = () => {
+    setArea("All")
+    setQuery("")
+  }
+
   return (
-    <section className="py-24 md:py-32 bg-background">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 px-4 lg:px-8 max-w-6xl mx-auto">
-          {projects.map((project) => (
-            <article 
-              key={project.id}
-              id={project.id.replace("-2", "")}
-              className="group"
+    <section id="all-projects" className="bg-background">
+      {/* Sticky filter bar: stays under the navbar while people scroll the grid */}
+      <div className="sticky top-16 z-30 border-b border-border bg-background/95 backdrop-blur-md lg:top-20">
+        <div className="site-container">
+          <div className="flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div
+              role="group"
+              aria-label="Filter projects by area"
+              className="-mx-1 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {/* Image */}
-              <div className="relative aspect-[16/10] overflow-hidden rounded-2xl mb-6">
-                <Image
-                  src={project.image}
-                  alt={project.title}
-                  fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+              {areas.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  aria-pressed={area === item}
+                  onClick={() => setArea(item)}
+                  className={cn(
+                    "shrink-0 border-b-2 px-3 py-2 text-sm transition-colors",
+                    area === item
+                      ? "border-accent-ink font-semibold text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {item}
+                  <span className="ml-1.5 text-xs tabular-nums text-muted-foreground">{countByArea[item]}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <label className="relative flex-1 lg:w-72">
+                <span className="sr-only">Search projects</span>
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                
-                {/* Category Badge */}
-                <div className="absolute top-4 left-4">
-                  <span className="px-3 py-1.5 bg-white/90 backdrop-blur-sm text-foreground text-[10px] font-medium tracking-widest uppercase rounded-full">
-                    {project.category}
-                  </span>
-                </div>
-
-                {/* Meta overlay */}
-                <div className="absolute bottom-4 left-4 flex gap-4 text-xs text-white/80">
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="w-3 h-3" />
-                    {project.location}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Users className="w-3 h-3" />
-                    {project.volunteers}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="w-3 h-3" />
-                    {project.year}
-                  </span>
-                </div>
-              </div>
-
-              {/* Content */}
-              <h3 className="font-serif text-2xl text-foreground mb-3 group-hover:text-primary transition-colors">
-                {project.title}
-              </h3>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-5">
-                {project.description}
-              </p>
-
-              {/* Achievements */}
-              <div className="flex flex-wrap gap-2 mb-5">
-                {project.achievements.map((achievement) => (
-                  <span 
-                    key={achievement} 
-                    className="px-3 py-1 bg-secondary text-secondary-foreground text-[11px] font-medium rounded-full"
-                  >
-                    {achievement}
-                  </span>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search projects or places"
+                  className="h-10 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-ring/40"
+                />
+              </label>
+              <label className="sr-only" htmlFor="project-sort">
+                Sort projects
+              </label>
+              <select
+                id="project-sort"
+                value={sort}
+                onChange={(event) => setSort(event.target.value as SortKey)}
+                className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:border-accent-ink focus:outline-none focus:ring-2 focus:ring-ring/40"
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
                 ))}
-              </div>
-
-              <span className="inline-flex items-center gap-2 text-sm text-foreground/60 group-hover:text-accent transition-colors">
-                Learn Details
-                <ArrowRight className="w-3.5 h-3.5" />
-              </span>
-            </article>
-          ))}
+              </select>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div className="site-container py-12 lg:py-16">
+        <div className="mb-10 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+          <p aria-live="polite">
+            Showing <span className="font-semibold text-foreground">{visible.length}</span> of {socialProjects.length} projects
+          </p>
+          {isFiltered && (
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex items-center gap-1.5 text-foreground underline underline-offset-4 hover:text-accent-ink"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {visible.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border px-6 py-20 text-center">
+            <p className="font-serif text-2xl text-foreground">No projects match your search.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Try another word, or choose a different area.</p>
+            <button
+              type="button"
+              onClick={reset}
+              className="mt-7 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Show all projects
+            </button>
+          </div>
+        ) : (
+          <>
+            {showFeatured && featured && (
+              <FeaturedProjectCard project={featured} />
+            )}
+            <div
+              className={cn(
+                "grid grid-cols-1 gap-x-8 gap-y-14 md:grid-cols-2 lg:grid-cols-3",
+                showFeatured && "mt-16 border-t border-border pt-16",
+              )}
+            >
+              {gridProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </section>
   )
 }
-

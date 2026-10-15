@@ -1,4 +1,5 @@
 import { Heart, Users, Target, Sparkles, Shield, Globe } from "lucide-react"
+import { SectionHeading } from "@/components/ui/section-heading"
 
 const values = [
   {
@@ -35,39 +36,32 @@ const values = [
 
 export function ValuesSection() {
   return (
-    <section className="py-24 md:py-32 bg-foreground">
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <div className="flex items-center justify-center gap-3 mb-5">
-            <div className="h-px w-10 bg-accent/50" />
-            <span className="text-accent font-medium tracking-[0.2em] uppercase text-xs">
-              Our Values
-            </span>
-            <div className="h-px w-10 bg-accent/50" />
-          </div>
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-background leading-tight">
-            The Principles That <span className="text-accent italic">Guide Us</span>
-          </h2>
+    <section id="values" className="section-y bg-foreground">
+      <div className="site-container">
+        <div className="mb-14 lg:mb-16">
+          <SectionHeading
+            tone="dark"
+            align="center"
+            eyebrow="Our values"
+            title={
+              <>
+                The principles that <em>guide us</em>
+              </>
+            }
+          />
         </div>
 
-        <div className="max-w-5xl mx-auto px-4 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-background/10 rounded-2xl overflow-hidden">
-            {values.map((value) => (
-              <div 
-                key={value.title}
-                className="p-8 md:p-10 bg-foreground hover:bg-background/5 transition-colors duration-300"
-              >
-              <value.icon className="w-5 h-5 text-accent mb-5 opacity-70" />
-              <h3 className="font-serif text-xl text-background mb-3">
-                {value.title}
-              </h3>
-              <p className="text-background/50 text-sm leading-relaxed">
-                {value.description}
-              </p>
-            </div>
-            ))}
-          </div>
-        </div>
+        <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-background/10 bg-background/10 sm:grid-cols-2 lg:grid-cols-3">
+          {values.map((value) => (
+            <li key={value.title} className="bg-foreground p-8 transition-colors duration-300 hover:bg-background/[0.04] md:p-10">
+              <span className="mb-6 flex h-11 w-11 items-center justify-center rounded-full bg-accent/15 text-accent">
+                <value.icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <h3 className="font-serif text-xl text-background">{value.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-background/65">{value.description}</p>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   )
